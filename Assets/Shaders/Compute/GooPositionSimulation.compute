@@ -1,0 +1,224 @@
+#pragma kernel Simulate
+#pragma kernel Resolve
+#pragma kernel UpdateSpatialPartitions
+
+struct BallData
+{
+    float3 Position;
+    int PartitionIndex;
+    float3 Velocity;
+    int IndexInPartitions;
+};
+
+struct Partition
+{
+    float3 ExtentsMin;
+    int Length;
+    float3 ExtentsMax;
+    int IndexInPartitions;
+    int PartitionBlock[27];
+    int BlockLength;
+};
+
+float3 Factors; // x = gravity, y = repulsion, z = deltaTime
+float3 Gravity;
+RWStructuredBuffer<BallData> Balls;
+RWStructuredBuffer<BallData> SimulationResults;
+
+RWBuffer<int> BallIndices;
+RWStructuredBuffer<Partition> Partitions;
+
+half SqDistance(half3 a, half3 b)
+{
+    half3 c = a - b;
+    return dot(c, c);
+}
+
+half3 CalculateRelativeDir(half3 positionA, half3 positionB)
+{
+    half sqDist = SqDistance(positionA, positionB);
+    
+    if (sqDist > 0.0625 * 0.0625)
+        return 0;
+    
+    half3 dir = positionA - positionB;
+    half len = length(dir) + 0.01;
+    
+    return dir / len * (1 - sqDist / 0.0625);
+}
+
+BallData CalculateVelocity(BallData ball, uint index)
+{
+    half3 repulsionDir;
+    
+    for (uint i = 0; i < 512; i++)
+        if (i != index)
+            repulsionDir += CalculateRelativeDir(ball.Position, Balls[i].Position);
+
+    ball.Velocity += Factors.y * 9.81 * Factors.z * repulsionDir / (length(repulsionDir) + 0.01);
+    ball.Velocity += Factors.x * Factors.z * Gravity;
+    
+    return ball;
+}
+
+BallData ConfineToCube(BallData ball)
+{
+    half positiveDelta = 0.5 - 0.0625;
+    half negativeDelta = -0.5 + 0.0625;
+    
+    if (ball.Position.x > positiveDelta || ball.Position.x < negativeDelta)
+        ball.Velocity.x = 0;
+    
+    if (ball.Position.y > positiveDelta || ball.Position.y < negativeDelta)
+        ball.Velocity.y = 0;
+    
+    if (ball.Position.z > positiveDelta || ball.Position.z < negativeDelta)
+        ball.Velocity.z = 0;
+    
+    ball.Position = clamp(ball.Position, negativeDelta, positiveDelta);
+    
+    return ball;
+}
+
+[numthreads(8, 8, 8)]
+void Simulate(uint index : SV_GroupIndex)
+{
+    BallData ball = Balls[index];
+    
+    ball = CalculateVelocity(ball, index);
+    ball.Position += ball.Velocity * Factors.z;
+    ball = ConfineToCube(ball);
+    
+    SimulationResults[index] = ball;
+}
+
+bool Equal(half3 a, half3 b)
+{
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
+uint Hash(uint x)
+{
+    x ^= x >> 16;
+    x *= 0x7feb352dU;
+    x ^= x >> 15;
+    x *= 0x846ca68bU;
+    x ^= x >> 16;
+    return x;
+}
+
+half Random(uint seed)
+{
+    return half(Hash(seed)) / 4294967295.0; // 2^32-1
+}
+
+[numthreads(8, 8, 8)]
+void Resolve(uint index : SV_GroupIndex)
+{
+    for (uint i = 0; i < 512; i++)
+    {
+        BallData ball = SimulationResults[i];
+        half3 testPos = SimulationResults[index].Position;
+        
+        if (Equal(ball.Position, testPos) && i != index)
+        {
+            half rx = Random(Hash(index + i + 1)) * 2 - 1;
+            half ry = Random(Hash(index + i + 2)) * 2 - 1;
+            half rz = Random(Hash(index + i + 3)) * 2 - 1;
+            
+            ball.Position += normalize(half3(rx, ry, rz)) * (0.0625 * 1.5);
+        }
+        
+        SimulationResults[i] = ball;
+        Balls[i] = ball;
+    }
+}
+
+// Might not be thread-safe, definitely not when used in conjunction with adding
+void RemoveFromPartition(int partitionIndex, int indexInPartition)
+{
+    int originalLength;
+    
+    InterlockedAdd(Partitions[partitionIndex].Length, -1, originalLength);
+    
+    if (indexInPartition == originalLength - 1)
+        return;
+    
+    int parIndex = Partitions[partitionIndex].IndexInPartitions;
+    
+    InterlockedExchange(BallIndices[parIndex + indexInPartition], BallIndices[parIndex + originalLength], parIndex);
+}
+
+// Should be thread-safe if used exclusively
+int AddToPartition(int partitionIndex, int ballIndex)
+{
+    int originalLength;
+    
+    InterlockedAdd(Partitions[partitionIndex].Length, 1, originalLength);
+    
+    int parIndex = Partitions[partitionIndex].IndexInPartitions;
+    
+    InterlockedExchange(BallIndices[parIndex + originalLength], ballIndex, parIndex);
+    
+    return originalLength;
+}
+
+bool PartitionContainsBall(Partition par, BallData ball)
+{
+    return ball.Position.x < par.ExtentsMax.x && ball.Position.x > par.ExtentsMin.x
+        && ball.Position.y < par.ExtentsMax.y && ball.Position.y > par.ExtentsMin.y
+        && ball.Position.z < par.ExtentsMax.z && ball.Position.z > par.ExtentsMin.z;
+}
+
+bool PartitionBlockContainsBall(int partitionBlock[27], int blockLength, BallData ball, out int index)
+{
+    for (int i = 0; i < blockLength; i++)
+    {
+        index = partitionBlock[i];
+        if (PartitionContainsBall(Partitions[index], ball))
+            return true;
+    }
+    return false;
+}
+
+int FindPartitionForBall(BallData ball)
+{
+    for (int i = 0; i < 512; i++)
+    {
+        Partition iPar = Partitions[i];
+        if (PartitionContainsBall(iPar, ball))
+            return i;
+    }
+    return -1;
+}
+
+[numthreads(8, 8, 8)]
+void UpdateSpatialPartitions(uint index : SV_GroupIndex)
+{
+    BallData ball = SimulationResults[index];
+    
+    Partition par = Partitions[ball.PartitionIndex];
+    int newIndex;
+    
+    if (PartitionContainsBall(par, ball))
+        newIndex = -1;
+    else if (!PartitionBlockContainsBall(par.PartitionBlock, par.BlockLength, ball, newIndex))
+        newIndex = FindPartitionForBall(ball);
+
+    int indexInPartition = ball.IndexInPartitions - ball.PartitionIndex * 512;
+    
+    RemoveFromPartition(ball.PartitionIndex, indexInPartition);
+    
+    AllMemoryBarrierWithGroupSync(); // Makes adding more thread-safe with removal
+    
+    if (newIndex == -1)
+        return;
+    
+    ball.PartitionIndex = newIndex;
+    
+    int newIndexInPartition = AddToPartition(ball.PartitionIndex, index);
+    
+    ball.IndexInPartitions = ball.PartitionIndex * 512 + newIndexInPartition;
+    
+    SimulationResults[index] = ball;
+}

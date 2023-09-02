@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: FlowerBlue
+  m_Shader: {fileID: 4800000, guid: be3893ba99d09634eab67dd9215663aa, type: 3}
+  m_Parent: {fileID: 2100000, guid: d993a9ed7efef874f836a2e739d93ee0, type: 2}
+  m_ModifiedSerializedProperties: 2
+  m_ValidKeywords:
+  - _OBJECTTYPE_FLOWER
+  m_InvalidKeywords:
+  - _IS_FLOWER
+  m_LightmapFlags: 2
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _SampleTexture2D_bb3d10e7cef64d6483962cac0b67fd67_Texture_1:
+        m_Texture: {fileID: 2800000, guid: c9e08bb857da07e45a5abf0109d326b5, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_f91bec80cc5c41a0b240a9a942b7b834_Texture_1:
+        m_Texture: {fileID: 2800000, guid: f968864950ac9ee488e9e6ccb3f12d95, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _IS_FLOWER: 1
+    - _ObjectType: 1
+    m_Colors:
+    - _FlowerColor: {r: 0.2, g: 0.5019608, b: 0.8980392, a: 1}
+    - _Flower_Color: {r: 0.2, g: 0.5019608, b: 0.8980392, a: 1}
+  m_BuildTextureStacks: []
+--- !u!114 &7450348998337883238
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  version: 7

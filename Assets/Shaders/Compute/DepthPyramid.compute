@@ -1,0 +1,50 @@
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
+
+#pragma kernel GeneratePyramid
+#pragma kernel InitialCopy
+
+RW_TEXTURE2D(float, _DepthMipChain);
+
+CBUFFER_START(cb)
+uint4 _SrcOffsetAndLimit; // {x, y, w - 1, h - 1}
+uint4 _DstOffset;         // {x, y, 0, 0}
+CBUFFER_END
+
+#if UNITY_REVERSED_Z
+# define MIN_DEPTH(l, r) max(l, r)
+#else
+# define MIN_DEPTH(l, r) min(l, r)
+#endif
+
+[numthreads(8, 8, 1)]
+void InitialCopy(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    _DepthMipChain[dispatchThreadId.xy] = LoadSceneDepth(dispatchThreadId.xy);
+}
+
+// Downsample a depth texture by taking the min value of sampled pixels
+// The size of the dispatch is (DstMipSize / KernelSize).
+[numthreads(8, 8, 1)]
+void GeneratePyramid(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    const uint2 srcOffset = _SrcOffsetAndLimit.xy;
+    const uint2 srcLimit  = _SrcOffsetAndLimit.zw;
+    const uint2 dstOffset = _DstOffset.xy;
+
+    // Upper-left pixel coordinate of quad that this thread will read
+    const uint2 srcPixelUL = srcOffset + (dispatchThreadId.xy << 1);
+
+    const float p00 = _DepthMipChain[min(srcPixelUL + uint2(0u, 0u), srcLimit)];
+    const float p10 = _DepthMipChain[min(srcPixelUL + uint2(1u, 0u), srcLimit)];
+    const float p01 = _DepthMipChain[min(srcPixelUL + uint2(0u, 1u), srcLimit)];
+    const float p11 = _DepthMipChain[min(srcPixelUL + uint2(1u, 1u), srcLimit)];
+    const float4 depths = float4(p00, p10, p01, p11);
+
+    // Select the closest sample
+    const float minDepth = MIN_DEPTH(MIN_DEPTH(depths.x, depths.y), MIN_DEPTH(depths.z, depths.w));
+
+    _DepthMipChain[dstOffset + dispatchThreadId.xy] = minDepth;
+}
+
+#undef MIN_DEPTH

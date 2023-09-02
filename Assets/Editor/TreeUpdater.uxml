@@ -1,0 +1,3 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <ui:Button text="Update All Matrices" display-tooltip-when-elided="true" binding-path="updateButton" focusable="false" tooltip="Updates all Tree matrices" name="updateButton" />
+</ui:UXML>
