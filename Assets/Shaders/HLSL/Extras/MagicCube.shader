@@ -20,8 +20,8 @@ Shader"Custom/MagicCube"
 
             Stencil
             {
-                Ref 1
-                Comp Greater
+                Ref 0
+                Comp Equal
                 Pass Keep
             }
 
@@ -149,6 +149,13 @@ Shader"Custom/MagicCube"
             Name "Depth Only"
             Tags { "LightMode" = "DepthOnly" }
 
+            Stencil
+            {
+                Ref 0
+                Comp Equal
+                Pass Keep
+            }
+            
             Cull Back
             ZTest LEqual
             ZWrite On
@@ -168,6 +175,13 @@ Shader"Custom/MagicCube"
             Name "Shadow Caster"
             Tags { "LightMode" = "ShadowCaster" }
 
+            Stencil
+            {
+                Ref 0
+                Comp Equal
+                Pass Keep
+            }
+            
             Cull Back
             ZTest LEqual
             ZWrite On

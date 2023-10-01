@@ -24,9 +24,8 @@ public class WaterSurface : ScriptableRendererFeature
         => depthPyramidPass ??= new DepthPyramidRenderPass(settings.WaterMaterial, settings.depthShader, ref depthPyramidTexture) {
             renderPassEvent = RenderPassEvent.BeforeRenderingTransparents
         };
-    
-    public static GraphicsBuffer MipDataBuffer 
-        => mipDataBuffer ??= new GraphicsBuffer(GraphicsBuffer.Target.Structured, 14, 16);
+
+    public static GraphicsBuffer MipDataBuffer => mipDataBuffer;
 
     public enum WaterDebugLayer {
         None, PositionWS, PositionHCS, NormalWS, UVRG, Light
@@ -81,6 +80,8 @@ public class WaterSurface : ScriptableRendererFeature
         waterDebugPass = new WaterTextureDebugRenderPass(settings.WaterMaterial) {
             renderPassEvent = RenderPassEvent.AfterRenderingTransparents
         };
+        
+        mipDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, 14, 16);
         
         quadMesh = new Mesh {
             vertices = new[] {

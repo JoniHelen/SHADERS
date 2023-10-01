@@ -1,5 +1,23 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-6662999590953479188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63de8a5fac2bfe641874b44ae3ad269e, type: 3}
+  m_Name: WaterSurface
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  settings:
+    WaterMaterial: {fileID: 2100000, guid: 8ede8028def17374a977bdc9b028db6a, type: 2}
+    Skybox: {fileID: 8900000, guid: 3dd9d8e3b0d6f1c4ebfa48dc14d87efd, type: 3}
+    depthShader: {fileID: 7200000, guid: 2fae04630e320024db1978116e14d8a2, type: 3}
+    Debug: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16,8 +34,8 @@ MonoBehaviour:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7,
       type: 3}
   m_RendererFeatures:
-  - {fileID: 4589043462770780881}
-  m_RendererFeatureMap: d1ea4731b78eaf3f
+  - {fileID: -6662999590953479188}
+  m_RendererFeatureMap: ec13a5922c4588a3
   m_UseNativeRenderPass: 1
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -43,7 +61,7 @@ MonoBehaviour:
     m_Bits: 2147483647
   m_TransparentLayerMask:
     serializedVersion: 2
-    m_Bits: 39
+    m_Bits: 47
   m_DefaultStencilState:
     overrideStencilState: 0
     stencilReference: 2
@@ -57,21 +75,3 @@ MonoBehaviour:
   m_CopyDepthMode: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
---- !u!114 &4589043462770780881
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 63de8a5fac2bfe641874b44ae3ad269e, type: 3}
-  m_Name: WaterSurface
-  m_EditorClassIdentifier: 
-  m_Active: 1
-  settings:
-    WaterMaterial: {fileID: 2100000, guid: 8ede8028def17374a977bdc9b028db6a, type: 2}
-    Skybox: {fileID: 8900000, guid: 3dd9d8e3b0d6f1c4ebfa48dc14d87efd, type: 3}
-    depthShader: {fileID: 7200000, guid: 2fae04630e320024db1978116e14d8a2, type: 3}
-    Debug: 0

@@ -78,7 +78,7 @@ Varyings Vertex(const Attributes input) {
 }
 
 half SampleOcclusion(const float2 uv) {
-    return SAMPLE_TEXTURE2D(_OcclusionMap, sampler_OcclusionMap, uv).g;
+    return SAMPLE_TEXTURE2D(_OcclusionMap, sampler_OcclusionMap, uv).r;
 }
 
 half4 SampleColor(const float2 uv) {
@@ -98,7 +98,7 @@ half3 SampleNormal(const float2 uv) {
 }
 
 void ApplyPerPixelDisplacement(const half3 viewDirTS, inout float2 uv) {
-    uv += ParallaxMapping(TEXTURE2D_ARGS(_ParallaxMap, sampler_ParallaxMap), viewDirTS, _ParallaxStrength * 0.1, uv);
+    uv += ParallaxOffset1Step(SAMPLE_TEXTURE2D(_ParallaxMap, sampler_ParallaxMap, uv).r, _ParallaxStrength * 0.1, viewDirTS);
 }
 
 void InitializeInputData(const Varyings input, const half3 normalTS, out InputData inputData) {

@@ -116,7 +116,7 @@ Material:
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
     - _Extinction: 0.232
-    - _FresnelBias: 0.105
+    - _FresnelBias: 0.55
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
@@ -124,7 +124,7 @@ Material:
     - _MaxDistance: 100
     - _MaxSteps: 108
     - _Metallic: 0
-    - _NormalStrength: 0.1
+    - _NormalStrength: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
     - _QueueOffset: 0
@@ -141,7 +141,7 @@ Material:
     - _SrcBlendAlpha: 1
     - _Strength: 0.22
     - _Surface: 0
-    - _Thickness: 0.202
+    - _Thickness: 0.044
     - _Wave_1_Angle: 233
     - _Wave_1_Size: 0.98
     - _Wave_1_Steepness: 0.113
