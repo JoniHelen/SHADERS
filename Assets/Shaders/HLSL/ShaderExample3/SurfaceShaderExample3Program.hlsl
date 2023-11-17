@@ -12,8 +12,8 @@ struct Varyings {
 
 // Define the texture as a 2D texture and specify a sampler for it.
 // The TEXTURE2D and the SAMPLER macros are defined in one of the files referenced in Core.hlsl
-TEXTURE2D(_BaseMap);
-SAMPLER(sampler_BaseMap);
+Texture2D _BaseMap;
+SamplerState sampler_BaseMap;
 
 CBUFFER_START(UnityPerMaterial)
     // For tiling and offset to work, it's necessary to declare the texture property with the _ST suffix in the 'CBUFFER' block.
@@ -36,7 +36,7 @@ Varyings Vertex(const Attributes input) {
 
 half4 Fragment(const Varyings input) : SV_TARGET {
     // use the SAMPLE_TEXTURE2D macro to sample the texture:
-    const half4 texColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
+    const half4 texColor = _BaseMap.SampleBias(sampler_BaseMap, input.uv, _GlobalMipBias.x);
     // add the base color tint:
     return texColor * _BaseColor;
 }

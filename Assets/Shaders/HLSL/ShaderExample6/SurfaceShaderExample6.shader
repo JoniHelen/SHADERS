@@ -7,11 +7,11 @@ Shader "Custom/SurfaceShaderExample6"
         [MainColor] _BaseColor("Base Color", Color) = (1, 1, 1, 1)
         [MainTexture] _BaseMap("Base Map", 2D) = "white" { }
         [NoScaleOffset] [Normal] _NormalMap("Normal Map", 2D) = "bump" { }
-        [NoScaleOffset] _RoughnessMap("Roughness Map", 2D) = "black" { }
-        [NoScaleOffset] _OcclusionMap("Ambient Occlusion Map", 2D) = "black" { }
+        [NoScaleOffset] _RoughnessMap("Roughness Map", 2D) = "white" { }
+        [NoScaleOffset] _OcclusionMap("Ambient Occlusion Map", 2D) = "white" { }
         [NoScaleOffset] _MetallicMap("Metallic Map", 2D) = "black" { }
         [NoScaleOffset] _ParallaxMap ("Parallax Map", 2D) = "black" { }
-		_ParallaxStrength ("Parallax Strength", Range(0, 1)) = 0
+		_ParallaxStrength ("Parallax Strength", Range(0, 10)) = 0
     }
     
     CustomEditor "ExampleShaderGUI" // Custom editor GUI
