@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class Cubes : MonoBehaviour
 {
-    [SerializeField] private float Angle;
+    [SerializeField] [Range(0f, 360f)] private float Angle;
     [SerializeField] private ComputeShader CubeShader;
     [SerializeField] private Mesh CubeMesh;
     [SerializeField] private Material CubeMaterial;
@@ -13,21 +13,22 @@ public class Cubes : MonoBehaviour
     private static int CubeKernel;
     private static readonly int Direction = Shader.PropertyToID("Direction");
     private static readonly int Positions = Shader.PropertyToID("Positions");
+    private static readonly int CurrentTime = Shader.PropertyToID("Time");
 
     private const int CubeAmount = 128 * 128;
 
-    private Vector3[] CubePositions = new Vector3[CubeAmount];
+    private Vector4[] CubePositions = new Vector4[CubeAmount];
 
     private Matrix4x4[] CubeMatrices = new Matrix4x4[CubeAmount];
 
-    private void PopulateCubes(Vector3[] cubes)
+    private void PopulateCubes(Vector4[] cubes)
     {
         for (int x = 0; x < 128; ++x)
         {
             for (int y = 0; y < 128; ++y)
             {
                 int idx = x * 128 + y;
-                cubes[idx] = new Vector3(x / 128f, 0, y / 128f);
+                cubes[idx] = new Vector4(x / 128f, 0, y / 128f);
             }
         }
     }
@@ -36,7 +37,7 @@ public class Cubes : MonoBehaviour
 
     private void Start()
     {
-        CubeBuffer = new ComputeBuffer(CubeAmount, 3 * sizeof(float));
+        CubeBuffer = new ComputeBuffer(CubeAmount, 16);
         PopulateCubes(CubePositions);
         CubeShader.SetBuffer(CubeKernel, Positions, CubeBuffer);
         CubeKernel = CubeShader.FindKernel("CSMain");
@@ -47,6 +48,7 @@ public class Cubes : MonoBehaviour
         CubeBuffer.SetData(CubePositions);
         
         Vector2 dir = new Vector2(Mathf.Sin(Mathf.Deg2Rad * Angle), Mathf.Cos(Mathf.Deg2Rad * Angle));
+        CubeShader.SetFloat(CurrentTime, Time.time * 0.5f);
         CubeShader.SetVector(Direction, dir);
         CubeShader.Dispatch(CubeKernel, 16, 16, 1);
 
@@ -54,7 +56,7 @@ public class Cubes : MonoBehaviour
         
         for (int i = 0; i < CubeAmount; ++i)
         {
-            CubeMatrices[i] = Matrix4x4.TRS(CubePositions[i] + transform.position, Quaternion.identity, Vector3.one * (1 / 128f));
+            CubeMatrices[i] = Matrix4x4.TRS((Vector3)CubePositions[i] + transform.position, Quaternion.identity, Vector3.one * (1 / 128f));
         }
         
         Graphics.DrawMeshInstanced(CubeMesh, 0, CubeMaterial, CubeMatrices);
