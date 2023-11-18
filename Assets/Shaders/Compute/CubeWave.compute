@@ -1,18 +1,21 @@
 #pragma kernel CSMain
 
+float Frequency;
 float Time;
 float2 Direction;
 RWStructuredBuffer<float4> Positions;
 
-float SampleFunction(float2 dir, float2 position)
+float SampleFunction(float2 position)
 {
-    position += Time;
-    return 0.1 * (sin(4 * dir.x * position.x) + sin(4 * dir.y * position.y));
+    position = position * Frequency * Direction + Time;
+    return 0.1 * sin(position.x + position.y);
 }
 
 [numthreads(8, 8, 1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     const uint idx = id.x * 128 + id.y;
-    Positions[idx] = float4(Positions[idx].x, SampleFunction(Direction, float2(id.x / 128.0f, id.y / 128.0f)), Positions[idx].z, 0);
+    const float3 currentPos = Positions[idx].xyz;
+    const float2 funcPos = float2(id.x / 128.0f, id.y / 128.0f);
+    Positions[idx] = float4(currentPos.x, SampleFunction(funcPos), currentPos.z, 0);
 }

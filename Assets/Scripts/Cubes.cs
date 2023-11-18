@@ -2,10 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class Cubes : MonoBehaviour
 {
     [SerializeField] [Range(0f, 360f)] private float Angle;
+    [SerializeField] [Range(0f, 40f)] private float Frequency;
     [SerializeField] private ComputeShader CubeShader;
     [SerializeField] private Mesh CubeMesh;
     [SerializeField] private Material CubeMaterial;
@@ -14,6 +16,7 @@ public class Cubes : MonoBehaviour
     private static readonly int Direction = Shader.PropertyToID("Direction");
     private static readonly int Positions = Shader.PropertyToID("Positions");
     private static readonly int CurrentTime = Shader.PropertyToID("Time");
+    private static readonly int Freq = Shader.PropertyToID("Frequency");
 
     private const int CubeAmount = 128 * 128;
 
@@ -39,27 +42,34 @@ public class Cubes : MonoBehaviour
     {
         CubeBuffer = new ComputeBuffer(CubeAmount, 16);
         PopulateCubes(CubePositions);
+        CubeBuffer.SetData(CubePositions);
         CubeShader.SetBuffer(CubeKernel, Positions, CubeBuffer);
         CubeKernel = CubeShader.FindKernel("CSMain");
     }
     
     private void Update()
     {
-        CubeBuffer.SetData(CubePositions);
-        
         Vector2 dir = new Vector2(Mathf.Sin(Mathf.Deg2Rad * Angle), Mathf.Cos(Mathf.Deg2Rad * Angle));
         CubeShader.SetFloat(CurrentTime, Time.time * 0.5f);
+        CubeShader.SetFloat(Freq, Frequency);
         CubeShader.SetVector(Direction, dir);
         CubeShader.Dispatch(CubeKernel, 16, 16, 1);
 
-        CubeBuffer.GetData(CubePositions);
-        
-        for (int i = 0; i < CubeAmount; ++i)
+        AsyncGPUReadback.Request(CubeBuffer, request =>
         {
-            CubeMatrices[i] = Matrix4x4.TRS((Vector3)CubePositions[i] + transform.position, Quaternion.identity, Vector3.one * (1 / 128f));
-        }
+            CubePositions = request.GetData<Vector4>().ToArray();
+            
+            for (int i = 0; i < CubeAmount; ++i)
+            {
+                CubeMatrices[i] = Matrix4x4.TRS((Vector3)CubePositions[i] + transform.position, Quaternion.identity, Vector3.one * (1 / 128f));
+            }
+            
+            CubeBuffer.SetData(CubePositions);
+        });
         
         Graphics.DrawMeshInstanced(CubeMesh, 0, CubeMaterial, CubeMatrices);
+        
+        //CubeBuffer.GetData(CubePositions);
     }
 
     private void OnDisable()
