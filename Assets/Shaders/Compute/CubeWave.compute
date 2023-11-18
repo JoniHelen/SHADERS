@@ -1,14 +1,17 @@
-// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
-RWTexture2D<float4> Result;
+float2 Direction;
+RWBuffer<float3> Positions;
 
-[numthreads(8,8,1)]
+float SampleFunction(float2 dir, float2 position)
+{
+    return sin(4 * dir.x * position.x) + sin(4 * dir.y * position.y);
+}
+
+[numthreads(8, 8, 1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    // TODO: insert actual code here!
-
-    Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+    const uint idx = id.x * 128 + id.y;
+    float3 prevPos = Positions[idx];
+    Positions[idx] = float3(prevPos.x, sin(4 * id.x / 128.0f), prevPos.z);
 }
