@@ -24,6 +24,8 @@ public class Cubes : MonoBehaviour
 
     private Matrix4x4[] CubeMatrices = new Matrix4x4[CubeAmount];
 
+    private AsyncGPUReadbackRequest GPURequest;
+
     private void PopulateCubes(Vector4[] cubes)
     {
         for (int x = 0; x < 128; ++x)
@@ -38,38 +40,44 @@ public class Cubes : MonoBehaviour
     
     private ComputeBuffer CubeBuffer;
 
-    private void Start()
-    {
-        CubeBuffer = new ComputeBuffer(CubeAmount, 16);
-        PopulateCubes(CubePositions);
-        CubeBuffer.SetData(CubePositions);
-        CubeShader.SetBuffer(CubeKernel, Positions, CubeBuffer);
-        CubeKernel = CubeShader.FindKernel("CSMain");
-    }
-    
-    private void Update()
+    private void DispatchCubes()
     {
         Vector2 dir = new Vector2(Mathf.Sin(Mathf.Deg2Rad * Angle), Mathf.Cos(Mathf.Deg2Rad * Angle));
         CubeShader.SetFloat(CurrentTime, Time.time * 0.5f);
         CubeShader.SetFloat(Freq, Frequency);
         CubeShader.SetVector(Direction, dir);
         CubeShader.Dispatch(CubeKernel, 16, 16, 1);
-
-        AsyncGPUReadback.Request(CubeBuffer, request =>
+    }
+    
+    private void Start()
+    {
+        CubeKernel = CubeShader.FindKernel("CSMain");
+        CubeBuffer = new ComputeBuffer(CubeAmount, 16);
+        
+        PopulateCubes(CubePositions);
+        CubeBuffer.SetData(CubePositions);
+        CubeShader.SetBuffer(CubeKernel, Positions, CubeBuffer);
+        
+        DispatchCubes();
+        
+        GPURequest = AsyncGPUReadback.Request(CubeBuffer);
+    }
+    
+    private void Update()
+    {
+        if (GPURequest.done)
         {
-            CubePositions = request.GetData<Vector4>().ToArray();
+            CubePositions = GPURequest.GetData<Vector4>().ToArray();
             
             for (int i = 0; i < CubeAmount; ++i)
-            {
                 CubeMatrices[i] = Matrix4x4.TRS((Vector3)CubePositions[i] + transform.position, Quaternion.identity, Vector3.one * (1 / 128f));
-            }
             
-            CubeBuffer.SetData(CubePositions);
-        });
+            GPURequest = AsyncGPUReadback.Request(CubeBuffer);
+        }
+        
+        DispatchCubes();
         
         Graphics.DrawMeshInstanced(CubeMesh, 0, CubeMaterial, CubeMatrices);
-        
-        //CubeBuffer.GetData(CubePositions);
     }
 
     private void OnDisable()
