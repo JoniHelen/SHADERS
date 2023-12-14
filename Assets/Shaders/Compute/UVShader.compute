@@ -1,0 +1,9 @@
+#pragma kernel VisualizeUV
+
+RWTexture2D<float4> UVMap;
+
+[numthreads(8, 8, 1)]
+void VisualizeUV (uint3 id : SV_DispatchThreadID)
+{
+    UVMap[id.xy] = float4(id.x / 1024.0f, id.y / 1024.0f, 0, 0);
+}

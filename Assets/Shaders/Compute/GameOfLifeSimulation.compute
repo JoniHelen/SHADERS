@@ -1,0 +1,306 @@
+#pragma multi_compile __ WRAP_EDGES
+
+float4 CellColour;
+float2 TextureSize;
+RWTexture2D<float4> State1;
+RWTexture2D<float4> State2;
+
+// This is used to check fo live cells.
+// Basically if vector length is nonzero, the cell is alive.
+float lengthsq(float4 v)
+{
+    return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
+}
+
+// Somewhat optimized GoL update loop
+void UpdateCell(RWTexture2D<float4> inputState, RWTexture2D<float4> outputState, int2 position)
+{
+    // Get neighbour count
+    uint countNeighbours = 0;
+    int2 readPos;
+    int3 offset = int3(-1, 1, 0);
+
+    // Top left
+    #ifdef WRAP_EDGES
+        readPos = position.x == 0 ?
+            (position.y == 0 ? TextureSize + offset.xx : int2(TextureSize.x + offset.x, position.y + offset.x)) :
+            position.y == 0 ? int2(position.x + offset.x, TextureSize.y + offset.x) : position + offset.xx;
+    #else
+        readPos = position + offset.xx;
+    #endif
+    
+    countNeighbours = lengthsq(inputState[readPos]) > 0 ? countNeighbours + 1 : countNeighbours;
+
+    // Top middle
+    #ifdef WRAP_EDGES
+        readPos = position.y == 0 ? int2(position.x, TextureSize.y + offset.x) : position + offset.zx;
+    #else
+        readPos = position + offset.zx;
+    #endif
+    
+    countNeighbours = lengthsq(inputState[readPos]) > 0 ? countNeighbours + 1 : countNeighbours;
+
+    // Top right
+    #ifdef WRAP_EDGES
+        readPos = position.x == TextureSize.x + offset.x ?
+            (position.y == 0 ? int2(0, TextureSize.y + offset.x) : int2(0, position.y + offset.x)) :
+            position.y == 0 ? int2(position.x + offset.y, TextureSize.y + offset.x) : position + offset.yx;
+    #else
+        readPos = position + offset.yx;
+    #endif
+    
+    countNeighbours = lengthsq(inputState[readPos]) > 0 ? countNeighbours + 1 : countNeighbours;
+
+    // Middle left
+    #ifdef WRAP_EDGES
+        readPos = position.x == 0 ? int2(TextureSize.x + offset.x, position.y) : position + offset.xz;
+    #else
+        readPos = position + offset.xz;
+    #endif
+    
+    countNeighbours = lengthsq(inputState[readPos]) > 0 ? countNeighbours + 1 : countNeighbours;
+
+    // Middle right
+    #ifdef WRAP_EDGES
+        readPos = position.x == TextureSize.x + offset.x ? int2(0, position.y) : position + offset.yz;
+    #else
+        readPos = position + offset.yz;
+    #endif
+    
+    countNeighbours = lengthsq(inputState[readPos]) > 0 ? countNeighbours + 1 : countNeighbours;
+
+    // Bottom left
+    #ifdef WRAP_EDGES
+        readPos = position.x == 0 ?
+            (position.y == TextureSize.y + offset.x ? int2(TextureSize.x + offset.x, 0) :
+                int2(TextureSize.x + offset.x, position.y + offset.y)) :
+            position.y == TextureSize.y + offset.x ? int2(position.x + offset.x, 0) : position + offset.xy;
+    #else
+        readPos = position + offset.xy;
+    #endif
+    
+    countNeighbours = lengthsq(inputState[readPos]) > 0 ? countNeighbours + 1 : countNeighbours;
+
+    // Bottom middle
+    #ifdef WRAP_EDGES
+        readPos = position.y == TextureSize.y + offset.x ? int2(position.x, 0) : position + offset.zy;
+    #else
+        readPos = position + offset.zy;
+    #endif
+    
+    countNeighbours = lengthsq(inputState[readPos]) > 0 ? countNeighbours + 1 : countNeighbours;
+
+    // Bottom right
+    #ifdef WRAP_EDGES
+        readPos = position.x == TextureSize.x + offset.x ?
+            (position.y == TextureSize.y + offset.x ? 0 : int2(0, position.y + offset.y)) :
+            position.y == TextureSize.y + offset.x ? int2(position.x + offset.y, 0) : position + offset.yy;
+    #else
+        readPos = position + offset.yy;
+    #endif
+    
+    countNeighbours = lengthsq(inputState[readPos]) > 0 ? countNeighbours + 1 : countNeighbours;
+
+    // Game of Life Rules applied here
+    outputState[position] = lengthsq(inputState[position]) > 0 ?
+        (countNeighbours > 1 && countNeighbours < 4 ? inputState[position] : 0) : // Rules 1, 2, 3
+        countNeighbours == 3 ? CellColour : 0; // Rule 4
+}
+
+// This kernel initializes the R-Pentomino seed
+#pragma kernel InitRPentomino
+
+[numthreads(8, 8, 1)]
+void InitRPentomino(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x == 256 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 255 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 256 && id.y == 255)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 257 && id.y == 255)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 256 && id.y == 257)
+        State1[id.xy] = CellColour;
+}
+
+// This kernel initializes the Acorn seed
+#pragma kernel InitAcorn
+
+[numthreads(8, 8, 1)]
+void InitAcorn(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x == 256 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 257 && id.y == 257)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 254 && id.y == 255)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 258 && id.y == 257)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 259 && id.y == 257)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 254 && id.y == 257)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 253 && id.y == 257)
+        State1[id.xy] = CellColour;
+}
+
+// This kernel initializes a Gosper Gun seed
+#pragma kernel InitGun
+
+[numthreads(8, 8, 1)]
+void InitGun(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x == 256 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 255 && id.y == 255)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 254 && id.y == 254)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 255 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 255 && id.y == 257)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 254 && id.y == 258)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 253 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 252 && id.y == 259)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 252 && id.y == 253)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 251 && id.y == 259)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 251 && id.y == 253)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 250 && id.y == 258)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 250 && id.y == 254)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 249 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 249 && id.y == 255)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 249 && id.y == 257)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 240 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 240 && id.y == 255)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 239 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 239 && id.y == 255)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 259 && id.y == 255)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 259 && id.y == 254)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 259 && id.y == 253)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 260 && id.y == 255)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 260 && id.y == 254)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 260 && id.y == 253)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 261 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 261 && id.y == 252)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 263 && id.y == 257)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 263 && id.y == 256)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 263 && id.y == 252)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 263 && id.y == 251)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 273 && id.y == 254)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 273 && id.y == 253)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 274 && id.y == 254)
+        State1[id.xy] = CellColour;
+
+    if (id.x == 274 && id.y == 253)
+        State1[id.xy] = CellColour;
+}
+
+// This kernel initializes interesting full texture seeds
+#pragma kernel InitFullTexture
+
+[numthreads(8, 8, 1)]
+void InitFullTexture(uint3 id : SV_DispatchThreadID)
+{
+    // Interesting full texture init patterns
+    
+    if (id.x % 7 == 0 || id.y % 3 == 0)
+        State1[id.xy] = CellColour;
+
+    /*if (id.x % 10 == 0 || id.y % 5 == 0)
+        State1[id.xy] = CellColour;*/
+}
+
+// We're using 2 states for maximum simulation integrity
+
+#pragma kernel Update1
+
+[numthreads(8, 8, 1)]
+void Update1 (uint3 id : SV_DispatchThreadID)
+{
+    UpdateCell(State1, State2, id.xy);
+}
+
+#pragma kernel Update2
+
+[numthreads(8, 8, 1)]
+void Update2 (uint3 id : SV_DispatchThreadID)
+{
+    UpdateCell(State2, State1, id.xy);
+}
